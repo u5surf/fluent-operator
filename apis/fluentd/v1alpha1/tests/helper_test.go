@@ -22,22 +22,22 @@ const (
 
 func Test_Cfg2ES(t *testing.T) {
 	sl := plugins.NewSecretLoader(nil, Fluentd.Namespace, logr.Logger{})
-	testNamespacedConfig(t, sl, Fluentd, &FluentdConfig1, []fluentdv1alpha1.ClusterOutput{FluentdclusterOutput2ES}, "./expected/fluentd-namespaced-cfg-output-es.cfg")
+	testConfigWithGlobalInputs(t, sl, Fluentd, &FluentdConfig1, []fluentdv1alpha1.ClusterOutput{FluentdclusterOutput2ES}, "./expected/fluentd-namespaced-cfg-output-es.cfg")
 }
 
 func Test_ClusterCfgInputTail(t *testing.T) {
 	sl := plugins.NewSecretLoader(nil, Fluentd.Namespace, logr.Logger{})
-	testClusterConfigWithGlobalInputs(t, sl, FluentdInputTail, &FluentdConfig1, []fluentdv1alpha1.ClusterOutput{FluentdClusterOutputTag}, "./expected/fluentd-global-cfg-input-tail.cfg")
+	testConfigWithGlobalInputs(t, sl, FluentdInputTail, &FluentdConfig1, []fluentdv1alpha1.ClusterOutput{FluentdClusterOutputTag}, "./expected/fluentd-global-cfg-input-tail.cfg")
 }
 
 func Test_ClusterCfgInputSample(t *testing.T) {
 	sl := plugins.NewSecretLoader(nil, Fluentd.Namespace, logr.Logger{})
-	testClusterConfigWithGlobalInputs(t, sl, FluentdInputSample, &FluentdConfig1, []fluentdv1alpha1.ClusterOutput{FluentdClusterOutputTag}, "./expected/fluentd-global-cfg-input-sample.cfg")
+	testConfigWithGlobalInputs(t, sl, FluentdInputSample, &FluentdConfig1, []fluentdv1alpha1.ClusterOutput{FluentdClusterOutputTag}, "./expected/fluentd-global-cfg-input-sample.cfg")
 }
 
 func Test_ClusterCfgInputMonitorAgent(t *testing.T) {
 	sl := plugins.NewSecretLoader(nil, Fluentd.Namespace, logr.Logger{})
-	testClusterConfigWithGlobalInputs(t, sl, FluentdInputMonitorAgent, &FluentdConfig1, []fluentdv1alpha1.ClusterOutput{FluentdClusterOutputTag}, "./expected/fluentd-global-cfg-input-monitorAgent.cfg")
+	testConfigWithGlobalInputs(t, sl, FluentdInputMonitorAgent, &FluentdConfig1, []fluentdv1alpha1.ClusterOutput{FluentdClusterOutputTag}, "./expected/fluentd-global-cfg-input-monitorAgent.cfg")
 }
 
 func Test_ClusterCfgOutput2ES(t *testing.T) {
@@ -76,7 +76,7 @@ func Test_ClusterCfgOutput2CopyESDataStream(t *testing.T) {
 
 func Test_Cfg2OpenSearch(t *testing.T) {
 	sl := plugins.NewSecretLoader(nil, Fluentd.Namespace, logr.Logger{})
-	testNamespacedConfig(t, sl, Fluentd, &FluentdConfig1, []fluentdv1alpha1.ClusterOutput{FluentdclusterOutput2OpenSearch}, "./expected/fluentd-namespaced-cfg-output-opensearch.cfg")
+	testConfigWithGlobalInputs(t, sl, Fluentd, &FluentdConfig1, []fluentdv1alpha1.ClusterOutput{FluentdclusterOutput2OpenSearch}, "./expected/fluentd-namespaced-cfg-output-opensearch.cfg")
 }
 
 func Test_ClusterCfgOutput2OpenSearch(t *testing.T) {
@@ -503,35 +503,8 @@ func Test_RecordTransformer(t *testing.T) {
 	testClusterConfigWithFiltersAndOutputs(t, sl, Fluentd, &FluentdClusterFluentdConfig1, []fluentdv1alpha1.ClusterFilter{FluentdClusterRecordTransformerFilter}, []fluentdv1alpha1.ClusterOutput{FluentdClusterOutputCluster}, "./expected/fluentd-cluster-cfg-filter-recordTransformer.cfg", false)
 }
 
-// testNamespacedConfig tests a namespaced config with cluster outputs
-func testNamespacedConfig(
-	t *testing.T,
-	sl plugins.SecretLoader,
-	fluentd fluentdv1alpha1.Fluentd,
-	config *fluentdv1alpha1.FluentdConfig,
-	clusterOutputs []fluentdv1alpha1.ClusterOutput,
-	expectedCfgPath string,
-) {
-	g := NewGomegaWithT(t)
-
-	psr := fluentdv1alpha1.NewGlobalPluginResources("main")
-	psr.CombineGlobalInputsPlugins(sl, fluentd.Spec.GlobalInputs)
-
-	cfgRouter, err := psr.BuildCfgRouter(config)
-	g.Expect(err).NotTo(HaveOccurred())
-	cfgResources, _ := psr.PatchAndFilterClusterLevelResources(sl, config.GetCfgId(), []fluentdv1alpha1.ClusterInput{}, []fluentdv1alpha1.ClusterFilter{}, clusterOutputs)
-	err = psr.WithCfgResources(*cfgRouter.Label, cfgResources)
-	g.Expect(err).NotTo(HaveOccurred())
-
-	for i := 0; i < maxRuntimes; i++ {
-		config, errs := psr.RenderMainConfig(false)
-		g.Expect(errs).NotTo(HaveOccurred())
-		g.Expect(string(getExpectedCfg(expectedCfgPath))).To(Equal(config))
-	}
-}
-
-// testClusterConfigWithGlobalInputs tests a cluster config with custom global inputs
-func testClusterConfigWithGlobalInputs(
+// testConfigWithGlobalInputs tests a cluster config with custom global inputs
+func testConfigWithGlobalInputs(
 	t *testing.T,
 	sl plugins.SecretLoader,
 	fluentd fluentdv1alpha1.Fluentd,
